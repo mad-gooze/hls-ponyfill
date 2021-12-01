@@ -11,6 +11,7 @@ import { VideoTrack } from './tracks/VideoTrack';
 import { SeekableTimeRanges } from './SeekableTimeRanges';
 
 const HLS_MIME_TYPE = 'application/vnd.apple.mpegurl';
+const CUSTOM_ELEMENT_ID = 'hls-ponyfill';
 
 export class HLSPonyfillVideoElement extends HTMLVideoElement {
     /**
@@ -23,7 +24,7 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
         if (testEl.canPlayType(HLS_MIME_TYPE) && !forced) {
             return false;
         }
-        if (customElements.get('hls-ponyfill') !== undefined) {
+        if (customElements.get(CUSTOM_ELEMENT_ID) !== undefined) {
             // already installed
             return true;
         }
@@ -32,10 +33,21 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
             return false;
         }
 
-        customElements.define('hls-ponyfill', HLSPonyfillVideoElement, {
+        customElements.define(CUSTOM_ELEMENT_ID, HLSPonyfillVideoElement, {
             extends: 'video',
         });
         return true;
+    }
+
+    /**
+     * Attaches hls-ponyfill to a given HTMLVideoElement
+     */
+    public static attach(video: HTMLVideoElement): HLSPonyfillVideoElement {
+        const originalProto = Object.getPrototypeOf(video);
+        Object.setPrototypeOf(video, HLSPonyfillVideoElement.prototype);
+
+        const hlsVideo = video as HLSPonyfillVideoElement;
+        return hlsVideo;
     }
 
     public static setHlsConstructor(HlsConstructor: typeof Hls): void {
@@ -58,6 +70,8 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
     private audioTrackList?: AudioTrackList;
 
     private seekableTimeRanges?: SeekableTimeRanges;
+
+    private originalPrototype?: typeof HTMLVideoElement.prototype;
 
     /**
      * @returns Hls instance if it is attached to video tag
@@ -157,6 +171,15 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
     }
 
     // #endregion
+
+    public detach(): HTMLVideoElement {
+        if (this.getAttribute('is') === CUSTOM_ELEMENT_ID || this.originalPrototype === undefined) {
+            throw new Error('cannot detach hls-ponyfill initialized via custom element');
+        }
+        Object.setPrototypeOf(this, this.originalPrototype);
+        delete this.originalPrototype;
+        return this;
+    }
 
     private detachHls(): void {
         if (this.hls === undefined || this.hls.media === null) {
