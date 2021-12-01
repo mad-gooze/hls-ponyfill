@@ -48,6 +48,10 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
 
         const hlsVideo = video as HLSPonyfillVideoElement;
         hlsVideo.originalPrototype = originalPrototype;
+
+        hlsVideo.initVideoTrackList();
+        hlsVideo.initAudioTrackList();
+
         return hlsVideo;
     }
 
