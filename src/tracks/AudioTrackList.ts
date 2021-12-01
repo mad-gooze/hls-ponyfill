@@ -1,15 +1,9 @@
 import { AudioTrack } from './AudioTrack';
 import { TrackList } from './TrackList';
-
-export interface AudioTrackEvent extends Event {
-    track: AudioTrack | null;
-}
-
-export interface AudioTrackListEventMap {
-    addtrack: AudioTrackEvent;
-    change: Event;
-    removetrack: AudioTrackEvent;
-}
+import type {
+    AudioTrackEvent,
+    AudioTrackList as IAudioTrackList,
+} from '../video';
 
 /**
  * Anywhere we call this function we diverge from the spec
@@ -28,18 +22,23 @@ function disableOthers(list: ArrayLike<AudioTrack>, track: AudioTrack): void {
     }
 }
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 /**
  * The current list of {@link AudioTrack} for a media file.
  *
  * @see [Spec]{@link https://html.spec.whatwg.org/multipage/embedded-content.html#audiotracklist}
  */
-export class AudioTrackList extends TrackList<AudioTrack> {
+export class AudioTrackList
+    extends TrackList<AudioTrack>
+    implements IAudioTrackList
+{
     public onaddtrack:
-        | ((this: AudioTrackList, ev: AudioTrackEvent) => unknown)
+        | ((this: IAudioTrackList, ev: AudioTrackEvent) => any)
         | null;
-    public onchange: ((this: AudioTrackList, ev: Event) => unknown) | null;
+    public onchange: ((this: IAudioTrackList, ev: Event) => any) | null;
     public onremovetrack:
-        | ((this: AudioTrackList, ev: AudioTrackEvent) => unknown)
+        | ((this: IAudioTrackList, ev: AudioTrackEvent) => any)
         | null;
 
     constructor(tracks: ReadonlyArray<AudioTrack> = []) {

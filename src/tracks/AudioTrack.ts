@@ -1,4 +1,5 @@
 import { Track, TrackProps } from './Track';
+import type { AudioTrack as IAudioTrack } from '../video';
 
 export type AudioTrackProps = { enabled?: boolean };
 
@@ -8,7 +9,7 @@ export type AudioTrackProps = { enabled?: boolean };
  *
  * @see [Spec]{@link https://html.spec.whatwg.org/multipage/embedded-content.html#audiotrack}
  */
-export class AudioTrack extends Track implements AudioTrackProps {
+export class AudioTrack extends Track implements IAudioTrack, AudioTrackProps {
     private _enabled = false;
     /**
      * @internal

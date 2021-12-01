@@ -1,15 +1,9 @@
 import { TrackList } from './TrackList';
 import { VideoTrack } from './VideoTrack';
-
-export interface VideoTrackEvent extends Event {
-    track: VideoTrack | null;
-}
-
-export interface VideoTrackListEventMap {
-    addtrack: VideoTrackEvent;
-    change: Event;
-    removetrack: VideoTrackEvent;
-}
+import type {
+    VideoTrackEvent,
+    VideoTrackList as IVideoTrackList,
+} from '../video';
 
 /**
  * Un-select all other {@link VideoTrack}s that are selected.
@@ -28,18 +22,23 @@ function disableOthers(list: ArrayLike<VideoTrack>, track: VideoTrack): void {
     }
 }
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 /**
  * The current list of {@link VideoTrack} for a video.
  *
  * @see [Spec]{@link https://html.spec.whatwg.org/multipage/embedded-content.html#videotracklist}
  */
-export class VideoTrackList extends TrackList<VideoTrack> {
+export class VideoTrackList
+    extends TrackList<VideoTrack>
+    implements IVideoTrackList
+{
     public onaddtrack:
-        | ((this: VideoTrackList, ev: VideoTrackEvent) => unknown)
+        | ((this: IVideoTrackList, ev: VideoTrackEvent) => any)
         | null;
-    public onchange: ((this: VideoTrackList, ev: Event) => unknown) | null;
+    public onchange: ((this: IVideoTrackList, ev: Event) => any) | null;
     public onremovetrack:
-        | ((this: VideoTrackList, ev: VideoTrackEvent) => unknown)
+        | ((this: IVideoTrackList, ev: VideoTrackEvent) => any)
         | null;
 
     constructor(tracks: ReadonlyArray<VideoTrack> = []) {

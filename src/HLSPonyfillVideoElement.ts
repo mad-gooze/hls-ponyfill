@@ -43,10 +43,11 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
      * Attaches hls-ponyfill to a given HTMLVideoElement
      */
     public static attach(video: HTMLVideoElement): HLSPonyfillVideoElement {
-        const originalProto = Object.getPrototypeOf(video);
+        const originalPrototype = Object.getPrototypeOf(video);
         Object.setPrototypeOf(video, HLSPonyfillVideoElement.prototype);
 
         const hlsVideo = video as HLSPonyfillVideoElement;
+        hlsVideo.originalPrototype = originalPrototype;
         return hlsVideo;
     }
 
@@ -173,8 +174,13 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
     // #endregion
 
     public detach(): HTMLVideoElement {
-        if (this.getAttribute('is') === CUSTOM_ELEMENT_ID || this.originalPrototype === undefined) {
-            throw new Error('cannot detach hls-ponyfill initialized via custom element');
+        if (
+            this.getAttribute('is') === CUSTOM_ELEMENT_ID ||
+            this.originalPrototype === undefined
+        ) {
+            throw new Error(
+                'cannot detach hls-ponyfill initialized via custom element',
+            );
         }
         Object.setPrototypeOf(this, this.originalPrototype);
         delete this.originalPrototype;
