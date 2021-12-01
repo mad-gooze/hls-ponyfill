@@ -92,6 +92,13 @@ export abstract class TrackList<T extends Track>
     }
 
     /**
+     * Returns a track by it's index
+     */
+    public item(index: number): T {
+        return this.tracks[index];
+    }
+
+    /**
      * @internal
      */
     protected dispatchTrackEvent(eventName: string, track: T): void {
