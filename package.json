@@ -19,7 +19,8 @@
     },
     "scripts": {
         "build": "tsc",
-        "test": "jest"
+        "test": "jest",
+        "prepublish": "npm run build"
     },
     "main": "dist/index.js",
     "types": "dist/index.d.ts"
