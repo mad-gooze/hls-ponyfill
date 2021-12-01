@@ -1,0 +1,5 @@
+.prettierrc.js
+.eslintrc.js
+jest.config.js
+src/
+tsconfig.json
