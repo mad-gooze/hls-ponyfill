@@ -347,14 +347,14 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
     }
 
     /**
-     * @returns hls.js constructor assigned by HLSPonyfillHTMLVideoElement.setHlsConstructor or globalThis.Hls
+     * @returns hls.js constructor assigned by HLSPonyfillVideoElement.setHlsConstructor or globalThis.Hls
      */
     private static getHlsConstructor(): typeof Hls {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const Hls = this.Hls || (globalThis as any).Hls;
         if (!Hls) {
             throw new Error(
-                'hls-ponyfill: global Hls.js was not found, please assign it using HLSPonyfillHTMLVideoElement.setHlsConstructor()',
+                'hls-ponyfill: global Hls.js was not found, please assign it using HLSPonyfillVideoElement.setHlsConstructor()',
             );
         }
 
