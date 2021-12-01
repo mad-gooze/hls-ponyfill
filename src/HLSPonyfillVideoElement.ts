@@ -89,19 +89,11 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
     // #region HTMLVideoElement API
 
     public get videoTracks(): VideoTrackList {
-        return this.hlsSrc === undefined && this.videoTrackList !== undefined
-            ? // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-              // @ts-ignore: videoTracks is not defined in HTMLMediaElement
-              super.videoTracks
-            : this.videoTrackList;
+        return this.videoTrackList!;
     }
 
     public get audioTracks(): AudioTrackList {
-        return this.hlsSrc === undefined && this.audioTrackList !== undefined
-            ? // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-              // @ts-ignore: audioTracks is not defined in HTMLMediaElement
-              super.audioTracks
-            : this.audioTrackList;
+        return this.audioTrackList!;
     }
 
     public getAttribute(qualifiedName: string): string | null {
