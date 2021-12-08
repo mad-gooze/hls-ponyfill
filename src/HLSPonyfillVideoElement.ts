@@ -9,6 +9,7 @@ import { clearTrackList } from './tracks/clearTrackList';
 import { VideoTrackList } from './tracks/VideoTrackList';
 import { VideoTrack } from './tracks/VideoTrack';
 import { SeekableTimeRanges } from './SeekableTimeRanges';
+import { HlsListeners } from 'hls.js';
 
 const HLS_MIME_TYPE = 'application/vnd.apple.mpegurl';
 const CUSTOM_ELEMENT_ID = 'hls-ponyfill';
@@ -78,6 +79,8 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
 
     private originalPrototype?: typeof HTMLVideoElement.prototype;
 
+    private isDetaching?: boolean;
+
     /**
      * @returns Hls instance if it is attached to video tag
      */
@@ -109,6 +112,13 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
             return this.setSrc(value);
         }
         return super.setAttribute(qualifiedName, value);
+    }
+
+    public removeAttribute(qualifiedName: string): void {
+        if (qualifiedName === 'src' && this.getHlsInstanceIfAttached()) {
+            this.detachHls();
+        }
+        super.removeAttribute(qualifiedName);
     }
 
     get src() {
@@ -184,13 +194,16 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
     }
 
     private detachHls(): void {
-        if (this.hls === undefined || this.hls.media === null) {
+        if (this.isDetaching) {
             return;
         }
-
-        this.hls.detachMedia();
+        this.isDetaching = true;
         clearTrackList(this.videoTrackList);
         clearTrackList(this.audioTrackList);
+        if (this.hls !== undefined) {
+            this.hls.detachMedia()
+        }
+        this.isDetaching = false;
     }
 
     private initVideoTrackList(): void {
@@ -245,11 +258,11 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
         }
 
         const isBlobUrl = getUrlProtocol(src) === 'blob:';
+        const isAttached = this.getHlsInstanceIfAttached() !== undefined;
 
-        const hls = this.getHlsInstanceIfAttached();
         // if hls.js is active and we are switching to another video, detach hls.js instance
-        if (hls !== undefined && !isBlobUrl) {
-            hls.detachMedia();
+        if (isAttached && !isBlobUrl) {
+            this.detachHls();
             this.hlsSrc = undefined;
         }
         super.src = src;
@@ -273,9 +286,9 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
         this.hls = hls;
         this.hlsSrc = src;
 
-        hls.on(Hls.Events.MANIFEST_LOADED, () => this.updateTrackLists(hls));
-        hls.on(Hls.Events.LEVEL_SWITCHED, () => this.updateVideoTrack(hls));
-        hls.on(Hls.Events.AUDIO_TRACK_SWITCHED, () =>
+        this.subscribeHlsEvent(hls, Hls.Events.MANIFEST_LOADED, () => this.updateTrackLists(hls));
+        this.subscribeHlsEvent(hls, Hls.Events.LEVEL_SWITCHED, () => this.updateVideoTrack(hls));
+        this.subscribeHlsEvent(hls, Hls.Events.AUDIO_TRACK_SWITCHED, () =>
             this.updateAudioTrack(hls),
         );
 
@@ -355,6 +368,12 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
         }
 
         return Hls;
+    }
+
+    private subscribeHlsEvent<E extends keyof HlsListeners>(hls: Hls, event: E, listener: HlsListeners[E]): void {
+        const Hls = HLSPonyfillVideoElement.getHlsConstructor();
+        hls.on(event, listener);
+        hls.on(Hls.Events.MEDIA_DETACHING, () => hls.off(event, listener));
     }
 
     private connectedCallback(): void {
