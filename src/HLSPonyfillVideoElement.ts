@@ -221,6 +221,22 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
                 videoTrackList[videoTrackList.selectedIndex].id,
                 10,
             );
+
+            let selectedTrack: VideoTrack | undefined;
+            for (let i = 0; i < videoTrackList.length; i++) {
+                if (videoTrackList[i].selected) {
+                    selectedTrack = videoTrackList[i];
+                }
+            }
+            if (selectedTrack === undefined || selectedTrack.id === hls.levels[hls.currentLevel].url[0]) {
+                return;
+            }
+
+            const selectedTrackId = selectedTrack.id;
+            const levelIndex = hls.levels.findIndex(({ url: [id]}) => id === selectedTrackId);
+            if (levelIndex >= 0) {
+                hls.currentLevel = levelIndex;
+            }
         });
         this.videoTrackList = videoTrackList;
     }
@@ -236,16 +252,21 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
             if (hls === undefined) {
                 return;
             }
-            let enabledTrack;
+            let enabledTrack: AudioTrack | undefined;
             for (let i = 0; i < audioTrackList.length; i++) {
                 if (audioTrackList[i].enabled) {
                     enabledTrack = audioTrackList[i];
                 }
             }
-            if (enabledTrack === undefined) {
+            if (enabledTrack === undefined || enabledTrack.id === hls.audioTracks[hls.audioTrack].url[0]) {
                 return;
             }
-            hls.audioTrack = parseInt(enabledTrack.id, 10);
+            
+            const enabledTrackId = enabledTrack.id;
+            const trackIndex = hls.audioTracks.findIndex(({ url: [id]}) => id === enabledTrackId);
+            if (trackIndex >= 0) {
+                hls.audioTrack = trackIndex;
+            }
         });
         this.audioTrackList = audioTrackList;
     }
