@@ -254,12 +254,12 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
                     enabledTrack = audioTrackList[i];
                 }
             }
-            if (enabledTrack === undefined || enabledTrack.id === hls.audioTracks[hls.audioTrack].url[0]) {
+            if (enabledTrack === undefined || enabledTrack.id === hls.audioTracks[hls.audioTrack].url) {
                 return;
             }
             
-            const enabledTrackId = enabledTrack.id;
-            const trackIndex = hls.audioTracks.findIndex(({ url: [id]}) => id === enabledTrackId);
+            const { id } = enabledTrack;
+            const trackIndex = hls.audioTracks.findIndex(({ url }) => url === id);
             if (trackIndex >= 0) {
                 hls.audioTrack = trackIndex;
             }
@@ -336,10 +336,10 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
             );
         });
 
-        hls.audioTracks.forEach(({ lang, name, url: [id]}, index) => {
+        hls.audioTracks.forEach(({ lang, name, url}, index) => {
             audioTrackList.addTrack(
                 new AudioTrack({
-                    id,
+                    id: url,
                     language: lang,
                     label: name,
                     enabled: hls.audioTrack === index,
@@ -353,9 +353,8 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
         if (hlsSrc === undefined || videoTrackList === undefined) {
             return;
         }
-        const videoTrack = videoTrackList.getTrackById(
-            hls.levels[hls.currentLevel].url[0],
-        );
+        const [id] = hls.levels[hls.currentLevel].url;
+        const videoTrack = videoTrackList.getTrackById(id);
         if (videoTrack !== null) {
             videoTrack.selected = true;
         }
@@ -366,7 +365,8 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
         if (hlsSrc === undefined || audioTrackList === undefined) {
             return;
         }
-        const audioTrack = audioTrackList.getTrackById(hls.audioTracks[hls.audioTrack].url[0]);
+        const { url } = hls.audioTracks[hls.audioTrack];
+        const audioTrack = audioTrackList.getTrackById(url);
         if (audioTrack !== null) {
             audioTrack.enabled = true;
         }
