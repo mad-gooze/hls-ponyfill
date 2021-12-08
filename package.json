@@ -1,0 +1,35 @@
+{
+    "name": "hls-ponyfill",
+    "dependencies": {
+        "nanoid": "^3.1.30"
+    },
+    "version": "1.0.14-0",
+    "devDependencies": {
+        "@typescript-eslint/eslint-plugin": "^5.4.0",
+        "@typescript-eslint/parser": "^5.4.0",
+        "eslint": "^8.2.0",
+        "eslint-config-prettier": "^8.3.0",
+        "eslint-plugin-prettier": "^4.0.0",
+        "hls.js": "^1.0.11",
+        "html-webpack-plugin": "^5.5.0",
+        "prettier": "^2.5.0",
+        "rimraf": "^3.0.2",
+        "ts-loader": "^9.2.6",
+        "typescript": "^4.5.2",
+        "webpack": "^5.64.4",
+        "webpack-cli": "^4.9.1",
+        "webpack-dev-server": "^4.6.0"
+    },
+    "peerDependencies": {
+        "hls.js": "^1.0.11"
+    },
+    "scripts": {
+        "clean": "rimraf dist/ && rimraf example/dist",
+        "build": "tsc",
+        "test": "jest",
+        "prepublish": "npm run clean && npm run build",
+        "build:example": "webpack --mode development"
+    },
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts"
+}
