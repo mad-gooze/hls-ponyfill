@@ -305,13 +305,13 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
             return;
         }
 
-        hls.levels.forEach(({ name, attrs, width, height, bitrate }, id) => {
+        hls.levels.forEach(({ name, attrs, width, height, bitrate, url: [id] }, index) => {
             videoTrackList.addTrack(
                 new VideoTrack({
-                    id: String(id),
+                    id,
                     language: attrs.LANGUAGE,
                     label: name,
-                    selected: hls.currentLevel === id,
+                    selected: hls.currentLevel === index,
                     width,
                     height,
                     bitrate,
@@ -319,13 +319,13 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
             );
         });
 
-        hls.audioTracks.forEach((track, id) => {
+        hls.audioTracks.forEach(({ lang, name, url: [id]}, index) => {
             audioTrackList.addTrack(
                 new AudioTrack({
-                    id: String(id),
-                    language: track.lang,
-                    label: track.name,
-                    enabled: hls.audioTrack === id,
+                    id,
+                    language: lang,
+                    label: name,
+                    enabled: hls.audioTrack === index,
                 }),
             );
         });
@@ -337,7 +337,7 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
             return;
         }
         const videoTrack = videoTrackList.getTrackById(
-            String(hls.currentLevel),
+            hls.levels[hls.currentLevel].url[0],
         );
         if (videoTrack !== null) {
             videoTrack.selected = true;
@@ -349,7 +349,7 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
         if (hlsSrc === undefined || audioTrackList === undefined) {
             return;
         }
-        const audioTrack = audioTrackList.getTrackById(String(hls.audioTrack));
+        const audioTrack = audioTrackList.getTrackById(hls.audioTracks[hls.audioTrack].url[0]);
         if (audioTrack !== null) {
             audioTrack.enabled = true;
         }
