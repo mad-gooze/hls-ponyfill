@@ -11,10 +11,14 @@
         "eslint-config-prettier": "^8.3.0",
         "eslint-plugin-prettier": "^4.0.0",
         "hls.js": "^1.0.11",
-        "jest": "^27.3.1",
+        "html-webpack-plugin": "^5.5.0",
         "prettier": "^2.5.0",
         "rimraf": "^3.0.2",
-        "typescript": "^4.4.3"
+        "ts-loader": "^9.2.6",
+        "typescript": "^4.5.2",
+        "webpack": "^5.64.4",
+        "webpack-cli": "^4.9.1",
+        "webpack-dev-server": "^4.6.0"
     },
     "peerDependencies": {
         "hls.js": "^1.0.11"
@@ -23,7 +27,8 @@
         "clean": "rimraf dist/",
         "build": "tsc",
         "test": "jest",
-        "prepublish": "npm run clean && npm run build"
+        "prepublish": "npm run clean && npm run build",
+        "build:example": "webpack --mode development"
     },
     "main": "dist/index.js",
     "types": "dist/index.d.ts"

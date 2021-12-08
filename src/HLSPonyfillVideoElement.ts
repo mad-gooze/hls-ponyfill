@@ -356,4 +356,8 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
 
         return Hls;
     }
+
+    private connectedCallback(): void {
+        this.setSrc(this.src);
+    }
 }
