@@ -217,10 +217,6 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
             if (hls === undefined) {
                 return;
             }
-            hls.currentLevel = parseInt(
-                videoTrackList[videoTrackList.selectedIndex].id,
-                10,
-            );
 
             let selectedTrack: VideoTrack | undefined;
             for (let i = 0; i < videoTrackList.length; i++) {
