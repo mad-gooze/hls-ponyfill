@@ -3,11 +3,7 @@ import { clamp } from './clamp';
 import { getStartDate } from './getStartDate';
 import { getUrlProtocol } from './getUrlProtocol';
 import { isHlsSource } from './isHlsSource';
-import { AudioTrackList } from './tracks/AudioTrackList';
-import { AudioTrack } from './tracks/AudioTrack';
-import { clearTrackList } from './tracks/clearTrackList';
-import { VideoTrackList } from './tracks/VideoTrackList';
-import { VideoTrack } from './tracks/VideoTrack';
+import { AudioTrackList, AudioTrack, VideoTrackList, VideoTrack, clearTrackList } from 'media-track-list';
 import { SeekableTimeRanges } from './SeekableTimeRanges';
 import { HlsListeners } from 'hls.js';
 
