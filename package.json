@@ -30,6 +30,6 @@
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "dependencies": {
-        "media-track-list": "^1.0.1"
+        "media-track-list": "^1.2.0"
     }
 }
