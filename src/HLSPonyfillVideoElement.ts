@@ -77,14 +77,6 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
 
     private isDetaching?: boolean;
 
-    /**
-     * @returns Hls instance if it is attached to video tag
-     */
-    private getHlsInstanceIfAttached(): Hls | undefined {
-        const { hls } = this;
-        return hls && hls.media === this ? hls : undefined;
-    }
-
     // #region HTMLVideoElement API
 
     public get videoTracks(): VideoTrackList {
@@ -111,7 +103,7 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
     }
 
     public removeAttribute(qualifiedName: string): void {
-        if (qualifiedName === 'src' && this.getHlsInstanceIfAttached()) {
+        if (qualifiedName === 'src' && this.getHls()) {
             this.detachHls();
         }
         super.removeAttribute(qualifiedName);
@@ -140,7 +132,7 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
             return new Date(NaN);
         }
 
-        return getStartDate(this.getHlsInstanceIfAttached());
+        return getStartDate(this.getHls());
     }
 
     /**
@@ -189,6 +181,14 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
         return this;
     }
 
+    /**
+     * @returns Hls instance if it is attached to video tag
+     */
+    public getHls(): Hls | undefined {
+        const { hls } = this;
+        return hls && hls.media === this ? hls : undefined;
+    }
+
     private detachHls(): void {
         if (this.isDetaching) {
             return;
@@ -209,7 +209,7 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
 
         const videoTrackList = new VideoTrackList();
         videoTrackList.addEventListener('change', () => {
-            const hls = this.getHlsInstanceIfAttached();
+            const hls = this.getHls();
             if (hls === undefined) {
                 return;
             }
@@ -240,7 +240,7 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
 
         const audioTrackList = new AudioTrackList();
         audioTrackList.addEventListener('change', () => {
-            const hls = this.getHlsInstanceIfAttached();
+            const hls = this.getHls();
             if (hls === undefined) {
                 return;
             }
@@ -271,7 +271,7 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
         }
 
         const isBlobUrl = getUrlProtocol(src) === 'blob:';
-        const isAttached = this.getHlsInstanceIfAttached() !== undefined;
+        const isAttached = this.getHls() !== undefined;
 
         // if hls.js is active and we are switching to another video, detach hls.js instance
         if (isAttached && !isBlobUrl) {
@@ -293,7 +293,7 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
             liveDurationInfinity: true,
         });
         this.seekableTimeRanges = new SeekableTimeRanges(
-            () => this.getHlsInstanceIfAttached(),
+            () => this.getHls(),
             super.seekable,
         );
         this.hls = hls;
