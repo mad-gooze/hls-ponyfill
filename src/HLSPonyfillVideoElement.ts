@@ -25,8 +25,8 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
             // already installed
             return true;
         }
-        const Hls = HLSPonyfillVideoElement.getHlsConstructor();
-        if (!Hls.isSupported()) {
+
+        if (!HLSPonyfillVideoElement.Hls.isSupported()) {
             return false;
         }
 
@@ -52,16 +52,33 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
         return hlsVideo;
     }
 
-    public static setHlsConstructor(HlsConstructor: typeof Hls): void {
-        this.Hls = HlsConstructor;
+    /**
+     * Explicitly sets hls.js constructor used by hls-ponyfill
+     */
+    public static set Hls(HlsConstructor: typeof Hls) {
+        this.HlsConstructor = HlsConstructor;
     }
 
-    private static Hls: typeof Hls;
+    /**
+     * @returns hls.js constructor assigned by HLSPonyfillVideoElement.setHlsConstructor or globalThis.Hls
+     */
+    public static get Hls(): typeof Hls {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const HlsConstructor = this.HlsConstructor || (globalThis as any).Hls;
+        if (!HlsConstructor) {
+            throw new Error(
+                'hls-ponyfill: global hls.js was not found, please assign it using HLSPonyfillVideoElement.Hls = Hls',
+            );
+        }
+        return HlsConstructor;
+    }
+
+    private static HlsConstructor: typeof Hls;
 
     /**
-     * Current Hls instance
+     * Current hls.js instance
      */
-    private hls?: Hls;
+    private hlsInstance?: Hls;
 
     /**
      * Current Hls playlist URL
@@ -103,7 +120,7 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
     }
 
     public removeAttribute(qualifiedName: string): void {
-        if (qualifiedName === 'src' && this.getHls()) {
+        if (qualifiedName === 'src' && this.hls !== undefined) {
             this.detachHls();
         }
         super.removeAttribute(qualifiedName);
@@ -132,7 +149,7 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
             return new Date(NaN);
         }
 
-        return getStartDate(this.getHls());
+        return getStartDate(this.hls);
     }
 
     /**
@@ -184,8 +201,8 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
     /**
      * @returns Hls instance if it is attached to video tag
      */
-    public getHls(): Hls | undefined {
-        const { hls } = this;
+    public get hls(): Hls | undefined {
+        const { hlsInstance: hls } = this;
         return hls && hls.media === this ? hls : undefined;
     }
 
@@ -196,8 +213,8 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
         this.isDetaching = true;
         clearTrackList(this.videoTrackList);
         clearTrackList(this.audioTrackList);
-        if (this.hls !== undefined) {
-            this.hls.detachMedia()
+        if (this.hlsInstance !== undefined) {
+            this.hlsInstance.detachMedia()
         }
         this.isDetaching = false;
     }
@@ -209,8 +226,7 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
 
         const videoTrackList = new VideoTrackList();
         videoTrackList.addEventListener('change', () => {
-            const hls = this.getHls();
-            if (hls === undefined) {
+            if (this.hls === undefined) {
                 return;
             }
 
@@ -220,14 +236,14 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
                     selectedTrack = videoTrackList[i];
                 }
             }
-            if (selectedTrack === undefined || selectedTrack.id === hls.levels[hls.currentLevel].url[0]) {
+            if (selectedTrack === undefined || selectedTrack.id === this.hls.levels[this.hls.currentLevel].url[0]) {
                 return;
             }
 
             const selectedTrackId = selectedTrack.id;
-            const levelIndex = hls.levels.findIndex(({ url: [id]}) => id === selectedTrackId);
+            const levelIndex = this.hls.levels.findIndex(({ url: [id]}) => id === selectedTrackId);
             if (levelIndex >= 0) {
-                hls.currentLevel = levelIndex;
+                this.hls.currentLevel = levelIndex;
             }
         });
         this.videoTrackList = videoTrackList;
@@ -240,8 +256,7 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
 
         const audioTrackList = new AudioTrackList();
         audioTrackList.addEventListener('change', () => {
-            const hls = this.getHls();
-            if (hls === undefined) {
+            if (this.hls === undefined) {
                 return;
             }
             let enabledTrack: AudioTrack | undefined;
@@ -250,14 +265,14 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
                     enabledTrack = audioTrackList[i];
                 }
             }
-            if (enabledTrack === undefined || enabledTrack.id === hls.audioTracks[hls.audioTrack].url) {
+            if (enabledTrack === undefined || enabledTrack.id === this.hls.audioTracks[this.hls.audioTrack].url) {
                 return;
             }
             
             const { id } = enabledTrack;
-            const trackIndex = hls.audioTracks.findIndex(({ url }) => url === id);
+            const trackIndex = this.hls.audioTracks.findIndex(({ url }) => url === id);
             if (trackIndex >= 0) {
-                hls.audioTrack = trackIndex;
+                this.hls.audioTrack = trackIndex;
             }
         });
         this.audioTrackList = audioTrackList;
@@ -271,7 +286,7 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
         }
 
         const isBlobUrl = getUrlProtocol(src) === 'blob:';
-        const isAttached = this.getHls() !== undefined;
+        const isAttached = this.hls !== undefined;
 
         // if hls.js is active and we are switching to another video, detach hls.js instance
         if (isAttached && !isBlobUrl) {
@@ -287,21 +302,20 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
         this.initVideoTrackList();
         this.initAudioTrackList();
 
-        const Hls = HLSPonyfillVideoElement.getHlsConstructor();
-        const hls = new Hls({
+        const hls = new HLSPonyfillVideoElement.Hls({
             // enable native-like behaviour for live & event streams
             liveDurationInfinity: true,
         });
         this.seekableTimeRanges = new SeekableTimeRanges(
-            () => this.getHls(),
+            () => this.hls,
             super.seekable,
         );
-        this.hls = hls;
+        this.hlsInstance = hls;
         this.hlsSrc = src;
 
-        this.subscribeHlsEvent(hls, Hls.Events.MANIFEST_LOADED, () => this.updateTrackLists(hls));
-        this.subscribeHlsEvent(hls, Hls.Events.LEVEL_SWITCHED, () => this.updateVideoTrack(hls));
-        this.subscribeHlsEvent(hls, Hls.Events.AUDIO_TRACK_SWITCHED, () =>
+        this.subscribeHlsEvent(hls, HLSPonyfillVideoElement.Hls.Events.MANIFEST_LOADED, () => this.updateTrackLists(hls));
+        this.subscribeHlsEvent(hls, HLSPonyfillVideoElement.Hls.Events.LEVEL_SWITCHED, () => this.updateVideoTrack(hls));
+        this.subscribeHlsEvent(hls, HLSPonyfillVideoElement.Hls.Events.AUDIO_TRACK_SWITCHED, () =>
             this.updateAudioTrack(hls),
         );
 
@@ -368,25 +382,9 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
         }
     }
 
-    /**
-     * @returns hls.js constructor assigned by HLSPonyfillVideoElement.setHlsConstructor or globalThis.Hls
-     */
-    private static getHlsConstructor(): typeof Hls {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const Hls = this.Hls || (globalThis as any).Hls;
-        if (!Hls) {
-            throw new Error(
-                'hls-ponyfill: global Hls.js was not found, please assign it using HLSPonyfillVideoElement.setHlsConstructor()',
-            );
-        }
-
-        return Hls;
-    }
-
     private subscribeHlsEvent<E extends keyof HlsListeners>(hls: Hls, event: E, listener: HlsListeners[E]): void {
-        const Hls = HLSPonyfillVideoElement.getHlsConstructor();
         hls.on(event, listener);
-        hls.on(Hls.Events.MEDIA_DETACHING, () => hls.off(event, listener));
+        hls.on(HLSPonyfillVideoElement.Hls.Events.MEDIA_DETACHING, () => hls.off(event, listener));
     }
 
     private connectedCallback(): void {
