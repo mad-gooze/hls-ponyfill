@@ -112,7 +112,6 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
     }
 
     public setAttribute(qualifiedName: string, value: string): void {
-        // TODO
         if (qualifiedName === 'src') {
             return this.setSrc(value);
         }
@@ -126,11 +125,11 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
         super.removeAttribute(qualifiedName);
     }
 
-    get src() {
+    get src(): HTMLVideoElement['src'] {
         return this.hlsSrc === undefined ? super.src : this.hlsSrc;
     }
 
-    set src(src: string) {
+    set src(src: HTMLVideoElement['src']) {
         this.setSrc(src);
     }
 
@@ -155,18 +154,18 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
     /**
      * Returns 'probably' for hls mime-type
      */
-    public canPlayType(mime: string): CanPlayTypeResult {
+    public canPlayType(mime: string): ReturnType<HTMLVideoElement['canPlayType']> {
         if (mime === HLS_MIME_TYPE) {
             return 'probably';
         }
         return super.canPlayType(mime);
     }
 
-    public get currentTime(): number {
+    public get currentTime(): HTMLVideoElement['currentTime'] {
         return super.currentTime;
     }
 
-    public set currentTime(value: number) {
+    public set currentTime(value: HTMLVideoElement['currentTime']) {
         if (this.hlsSrc !== undefined) {
             // clamp value to safe range
             value = clamp(value, this.seekable.start(0), this.seekable.end(0));
@@ -175,7 +174,7 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
         super.currentTime = value;
     }
 
-    public get seekable(): TimeRanges {
+    public get seekable(): HTMLVideoElement['seekable'] {
         const { seekableTimeRanges } = this;
         return seekableTimeRanges === undefined
             ? super.seekable
