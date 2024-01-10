@@ -364,7 +364,7 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
         }
         const [id] = hls.levels[hls.currentLevel].url;
         const videoTrack = videoTrackList.getTrackById(id);
-        if (videoTrack !== null) {
+        if (videoTrack !== null && !videoTrack.selected) {
             videoTrack.selected = true;
         }
     }
@@ -376,7 +376,7 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
         }
         const { url } = hls.audioTracks[hls.audioTrack];
         const audioTrack = audioTrackList.getTrackById(url);
-        if (audioTrack !== null) {
+        if (audioTrack !== null && !audioTrack.enabled) {
             audioTrack.enabled = true;
         }
     }
