@@ -5,7 +5,7 @@ import { getUrlProtocol } from './getUrlProtocol';
 import { isHlsSource } from './isHlsSource';
 import { AudioTrackList, AudioTrack, VideoTrackList, VideoTrack, clearTrackList } from 'media-track-list';
 import { SeekableTimeRanges } from './SeekableTimeRanges';
-import { HlsListeners } from 'hls.js';
+import { HlsListeners, Level } from 'hls.js';
 
 const HLS_MIME_TYPE = 'application/vnd.apple.mpegurl';
 const CUSTOM_ELEMENT_ID = 'hls-ponyfill';
@@ -235,7 +235,8 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
                     selectedTrack = videoTrackList[i];
                 }
             }
-            if (selectedTrack === undefined || selectedTrack.id === this.hls.levels[this.hls.currentLevel].url[0]) {
+            const currentHlsLevel = this.hls.levels[this.hls.currentLevel];
+            if (selectedTrack === undefined || currentHlsLevel !== undefined && selectedTrack.id === currentHlsLevel.url[0]) {
                 return;
             }
 
