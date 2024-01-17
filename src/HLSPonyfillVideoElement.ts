@@ -192,6 +192,7 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
                 'cannot detach hls-ponyfill initialized via custom element',
             );
         }
+        this.detachHls();
         Object.setPrototypeOf(this, this.originalPrototype);
         delete this.originalPrototype;
         return this;
@@ -213,7 +214,8 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
         clearTrackList(this.videoTrackList);
         clearTrackList(this.audioTrackList);
         if (this.hlsInstance !== undefined) {
-            this.hlsInstance.detachMedia()
+            this.hlsInstance.detachMedia();
+            this.hlsInstance.destroy();
         }
         this.isDetaching = false;
     }
