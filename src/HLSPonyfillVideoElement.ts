@@ -1,4 +1,5 @@
 import type Hls from 'hls.js';
+import { type MediaPlaylist, NonNativeTextTrack } from 'hls.js';
 import { clamp } from './clamp';
 import { getStartDate } from './getStartDate';
 import { getUrlProtocol } from './getUrlProtocol';
@@ -6,9 +7,12 @@ import { isHlsSource } from './isHlsSource';
 import { AudioTrackList, AudioTrack, VideoTrackList, VideoTrack, clearTrackList } from 'media-track-list';
 import { SeekableTimeRanges } from './SeekableTimeRanges';
 import { HlsListeners, Level } from 'hls.js';
+import { addCueToTrack } from './addCueToTrack';
 
 const HLS_MIME_TYPE = 'application/vnd.apple.mpegurl';
 const CUSTOM_ELEMENT_ID = 'hls-ponyfill';
+
+const FAKE_VTT = URL.createObjectURL(new Blob(['WEBVTT'], { type: 'text/vtt'}));
 
 export class HLSPonyfillVideoElement extends HTMLVideoElement {
     /**
@@ -60,7 +64,7 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
     }
 
     /**
-     * @returns hls.js constructor assigned by HLSPonyfillVideoElement.setHlsConstructor or globalThis.Hls
+     * @returns hls.js constructor assigned tp HLSPonyfillVideoElement.Hls or globalThis.Hls
      */
     public static get Hls(): typeof Hls {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -191,6 +195,15 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
             );
         }
         this.detachHls();
+
+        // remove track events l
+        if (this.onVideoTracksChange !== undefined) {
+            this.videoTrackList?.removeEventListener('change', this.onVideoTracksChange);
+        }
+        if (this.onAudioTracksChange !== undefined) {
+            this.audioTrackList?.removeEventListener('change', this.onAudioTracksChange);
+        }
+
         Object.setPrototypeOf(this, this.originalPrototype);
         delete this.originalPrototype;
         return this;
@@ -204,9 +217,19 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
         return hls && hls.media === this ? hls : undefined;
     }
 
+    private onVideoTracksChange?: VoidFunction;
+    private onAudioTracksChange?: VoidFunction;
+
     private detachHls(): void {
         clearTrackList(this.videoTrackList);
         clearTrackList(this.audioTrackList);
+
+        // clear <track> nodes
+        const textTracks = this.querySelectorAll('track[data-hls-ponyfill]');
+        for (let i = 0; i < textTracks.length; i++) {
+            textTracks[i].remove();
+        }
+
         if (this.hlsInstance !== undefined) {
             this.hlsInstance.detachMedia();
             this.hlsInstance.destroy();
@@ -220,7 +243,7 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
         }
 
         const videoTrackList = new VideoTrackList();
-        videoTrackList.addEventListener('change', () => {
+        this.onVideoTracksChange = () => {
             if (this.hls === undefined) {
                 return;
             }
@@ -241,7 +264,8 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
             if (levelIndex >= 0) {
                 this.hls.currentLevel = levelIndex;
             }
-        });
+        };
+        videoTrackList.addEventListener('change', this.onVideoTracksChange);
         this.videoTrackList = videoTrackList;
     }
 
@@ -298,9 +322,12 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
         this.initVideoTrackList();
         this.initAudioTrackList();
 
-        const hls = new HLSPonyfillVideoElement.Hls({
-            // enable native-like behaviour for live & event streams
+        const { Hls } = HLSPonyfillVideoElement;
+        const hls = new Hls({
+            // enable native-like behavior for live & event streams
             liveDurationInfinity: true,
+            // handle text tracks manually to achieve more 'native' behavior
+            renderTextTracksNatively: false,
         });
         this.seekableTimeRanges = new SeekableTimeRanges(
             () => this.hls,
@@ -309,11 +336,36 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
         this.hlsInstance = hls;
         this.hlsSrc = src;
 
-        this.subscribeHlsEvent(hls, HLSPonyfillVideoElement.Hls.Events.MANIFEST_LOADED, () => this.updateTrackLists(hls));
-        this.subscribeHlsEvent(hls, HLSPonyfillVideoElement.Hls.Events.LEVEL_SWITCHED, () => this.updateVideoTrack(hls));
-        this.subscribeHlsEvent(hls, HLSPonyfillVideoElement.Hls.Events.AUDIO_TRACK_SWITCHED, () =>
-            this.updateAudioTrack(hls),
-        );
+        const on: <E extends keyof HlsListeners>(event: E, listener: HlsListeners[E]) => void = (e, listener) => {
+            hls.on(e, listener);
+            hls.on(Hls.Events.MEDIA_DETACHING, () => hls.off(e, listener));
+        }
+
+        on(Hls.Events.MANIFEST_LOADED, () => this.updateTrackLists(hls));
+        on(Hls.Events.LEVEL_SWITCHED, () => this.updateVideoTrack(hls));
+        on(Hls.Events.AUDIO_TRACK_SWITCHED, () => this.updateAudioTrack(hls));
+
+        on(Hls.Events.SUBTITLE_TRACK_SWITCH, () => this.updateTextTrack(hls));
+        on(Hls.Events.NON_NATIVE_TEXT_TRACKS_FOUND, (e, { tracks }) => this.initNativeTextTrack(tracks));
+        on(Hls.Events.CUES_PARSED, (e, { cues }) => this.addCues(cues, hls));
+
+        const onTextTracksChange = () => {
+            for (let i = 0; i < this.textTracks.length; i++) {
+                const currentTextTrack = this.textTracks[i];
+                if (this.textTracks[i].mode ==='disabled') {
+                    continue;
+                }
+                const trackIndex = hls.subtitleTracks.findIndex((hlsTrack) => hlsTrack.type.toLowerCase() === currentTextTrack.kind && hlsTrack.name === currentTextTrack.label && (!currentTextTrack.language || currentTextTrack.language === hlsTrack.lang));
+                console.log({ current: hls.subtitleTrack, new: trackIndex })
+                if (trackIndex < 0 || hls.subtitleTrack === trackIndex) {
+                    return;
+                }
+                hls.subtitleTrack = trackIndex;
+                return;
+            }
+        };
+        this.textTracks.addEventListener('change', onTextTracksChange);
+        hls.on(Hls.Events.MEDIA_DETACHING, () => this.textTracks.removeEventListener('change', onTextTracksChange));
 
         hls.loadSource(src);
         hls.attachMedia(this);
@@ -378,12 +430,59 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
         }
     }
 
-    private subscribeHlsEvent<E extends keyof HlsListeners>(hls: Hls, event: E, listener: HlsListeners[E]): void {
-        hls.on(event, listener);
-        hls.on(HLSPonyfillVideoElement.Hls.Events.MEDIA_DETACHING, () => hls.off(event, listener));
+    private updateTextTrack(hls: Hls): void {
+        const hlsTrack = hls.subtitleTracks[hls.subtitleTrack];
+        if (hlsTrack === undefined) {
+            return;
+        }
+
+        for (let i = 0; i < this.textTracks.length; i++) {
+            const textTrack = this.textTracks[i];
+            const shouldEnable = isCorrespondingTrack(textTrack, hlsTrack);
+
+            if (shouldEnable && textTrack.mode === 'disabled') {
+                textTrack.mode = 'showing';
+            } else if (!shouldEnable && textTrack.mode !== 'disabled') {
+                textTrack.mode = 'disabled';
+            }
+        }
+    }
+
+    private initNativeTextTrack(tracks: NonNativeTextTrack[]): void {
+        tracks.forEach((track) => {
+            const trackEl = document.createElement('track');
+            trackEl.setAttribute('data-hls-ponyfill', 'true');
+            trackEl.setAttribute('kind', track.kind);
+            trackEl.setAttribute('label', track.label);
+            if (track.subtitleTrack?.lang !== undefined) {
+                trackEl.setAttribute('srclang', track.subtitleTrack.lang);
+            }
+            trackEl.src = FAKE_VTT;
+            this.appendChild(trackEl);
+            this.textTracks[this.textTracks.length - 1].mode = track.default ? 'showing' : 'hidden';
+        });
+    }
+
+    private addCues(cues: ReadonlyArray<VTTCue>, hls: Hls): void {
+        if (hls.subtitleTrack === -1) {
+            return;
+        }
+        const currentHlsTrack = hls.subtitleTracks[hls.subtitleTrack];
+        for (let i = 0; i < this.textTracks.length; i++) {
+            if (isCorrespondingTrack(this.textTracks[i], currentHlsTrack)) {
+                cues.forEach((cue: VTTCue) => addCueToTrack(this.textTracks[i], cue));
+                return;
+            }
+        }
     }
 
     private connectedCallback(): void {
         this.setSrc(this.src);
     }
+}
+
+function isCorrespondingTrack(textTrack: TextTrack, hlsTrack: MediaPlaylist): boolean {
+    return hlsTrack.type.toLowerCase() === textTrack.kind && 
+        hlsTrack.name === textTrack.label && 
+        (!textTrack.language || textTrack.language === hlsTrack.lang);
 }
