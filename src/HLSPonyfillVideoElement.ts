@@ -96,6 +96,8 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
 
     private originalPrototype?: typeof HTMLVideoElement.prototype;
 
+    private isDetaching?: boolean;
+
     // #region HTMLVideoElement API
 
     public get videoTracks(): VideoTrackList {
@@ -221,6 +223,10 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
     private onAudioTracksChange?: VoidFunction;
 
     private detachHls(): void {
+        if (this.isDetaching) {
+            return;
+        }
+        this.isDetaching = true;
         clearTrackList(this.videoTrackList);
         clearTrackList(this.audioTrackList);
 
@@ -233,8 +239,8 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
         if (this.hlsInstance !== undefined) {
             this.hlsInstance.detachMedia();
             this.hlsInstance.destroy();
-            this.hlsInstance = undefined
         }
+        this.isDetaching = false;
     }
 
     private initVideoTrackList(): void {
