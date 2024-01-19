@@ -464,7 +464,7 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
             }
             trackEl.src = FAKE_VTT;
             this.appendChild(trackEl);
-            this.textTracks[this.textTracks.length - 1].mode = track.default ? 'showing' : 'hidden';
+            trackEl.track.mode = track.default ? 'showing' : 'hidden';
         });
     }
 
