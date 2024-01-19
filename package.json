@@ -1,6 +1,6 @@
 {
     "name": "hls-ponyfill",
-    "version": "0.0.7",
+    "version": "0.0.8",
     "devDependencies": {
         "@typescript-eslint/eslint-plugin": "^5.4.0",
         "@typescript-eslint/parser": "^5.4.0",
