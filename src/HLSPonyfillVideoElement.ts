@@ -361,8 +361,7 @@ export class HLSPonyfillVideoElement extends HTMLVideoElement {
                 if (this.textTracks[i].mode ==='disabled') {
                     continue;
                 }
-                const trackIndex = hls.subtitleTracks.findIndex((hlsTrack) => hlsTrack.type.toLowerCase() === currentTextTrack.kind && hlsTrack.name === currentTextTrack.label && (!currentTextTrack.language || currentTextTrack.language === hlsTrack.lang));
-                console.log({ current: hls.subtitleTrack, new: trackIndex })
+                const trackIndex = hls.subtitleTracks.findIndex((hlsTrack) => isCorrespondingTrack(currentTextTrack, hlsTrack));
                 if (trackIndex < 0 || hls.subtitleTrack === trackIndex) {
                     return;
                 }
